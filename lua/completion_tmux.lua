@@ -38,6 +38,7 @@ end
 
 function getOtherPanelWords() 
   local current_panel=os.getenv("TMUX_PANE")
+  if current_panel==nil then return {} end
   local ioHandle=io.popen("tmux list-panes $LISTARGS -F '#{pane_active}#{window_active}-#{session_id} #{pane_id}'")
   local list_panes_txt=ioHandle:read("*all")
 
