@@ -1,76 +1,62 @@
 local luv = vim.loop
 local completion = require "completion"
 local match = require "completion.matching"
+
 local M = {}
 local cache = {}
 
-
-
-
-function extracWords(txt)
-  local words={}
+function extractWords(txt)
+  local words = {}
   for word in string.gmatch(txt, "[%w_]+") do
-    words[word]="tmux completion"
+    words[word] = "tmux completion"
   end
   return words
 end
 
-
-
-
-function capturePane(panel)
-
-  local ioHandle=nil
-  if nil==io.popen("tmux capture-pane -p") then
-    ioHandle=io.popen("tmux capture-pane  -t {} " ..panel.. " && tmux show-buffer && tmux delete-buffer")
+function capturePane(pane)
+  local ioHandle = nil
+  if nil == io.popen("tmux capture-pane -p") then
+    ioHandle = io.popen("tmux capture-pane  -t {} " .. pane .. " && tmux show-buffer && tmux delete-buffer")
   else
-    ioHandle=io.popen("tmux capture-pane -p -t " .. panel)
+    ioHandle = io.popen("tmux capture-pane -p -t " .. pane)
   end
   if ioHandle ~= nil then
-    return extracWords(ioHandle:read("*all"))
+    return extractWords(ioHandle:read("*all"))
   else
     return {}
   end
-
-
 end
 
+function getOtherPaneWords()
+  local current_pane = os.getenv("TMUX_PANE")
+  if current_pane == nil then return {} end
+  local ioHandle = io.popen("tmux list-panes $LISTARGS -F '#{pane_active}#{window_active}-#{session_id} #{pane_id}'")
+  local list_panes_txt = ioHandle:read("*all")
 
-function getOtherPanelWords() 
-  local current_panel=os.getenv("TMUX_PANE")
-  if current_panel==nil then return {} end
-  local ioHandle=io.popen("tmux list-panes $LISTARGS -F '#{pane_active}#{window_active}-#{session_id} #{pane_id}'")
-  local list_panes_txt=ioHandle:read("*all")
-
-
-  local list_panes={}
+  local list_panes = {}
   --[[
   list_panes format is a structured text like:
   11-$0 %7
-  01-$0 %3 
-  we need to get the part of %num 
+  01-$0 %3
+  we need to get the part of %num
   ]]--
-  for panel in string.gmatch(list_panes_txt, "%%%d+") do
-    if current_panel ~= panel then
-      table.insert(list_panes,panel)
+  for pane in string.gmatch(list_panes_txt, "%%%d+") do
+    if current_pane ~= pane then
+      table.insert(list_panes, pane)
     end
   end
 
-
-  local list_words={}
-  for _,val in ipairs(list_panes) do
-    for k,v in pairs(capturePane(val)) do 
-    list_words[k] = "tmux completion" end
+  local list_words = {}
+  for _, val in ipairs(list_panes) do
+    for k, v in pairs(capturePane(val)) do
+      list_words[k] = "tmux completion"
+    end
   end
-
   return list_words
-
 end
 
-
-
-local getCompletionItems = function(prefix)
-  local items = getOtherPanelWords()
+local function getCompletionItems(prefix)
+  local items = getOtherPaneWords()
   local complete_items = {}
   if prefix == '' then
     return complete_items
@@ -88,14 +74,12 @@ local getCompletionItems = function(prefix)
         })
     end
   end
-
   return complete_items
 end
 
 function M.add_sources()
   completion.addCompletionSource('tmux', { item = getCompletionItems });
   -- Cache on init
-
 end
 
 return M
