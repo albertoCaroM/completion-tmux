@@ -5,7 +5,7 @@ local match = require "completion.matching"
 local M = {}
 local cache = {}
 
-function extractWords(txt)
+local function extractWords(txt)
   local words = {}
   for word in string.gmatch(txt, "[%w_]+") do
     words[word] = "tmux completion"
@@ -13,7 +13,7 @@ function extractWords(txt)
   return words
 end
 
-function capturePane(pane)
+local function capturePane(pane)
   local ioHandle = nil
   if nil == io.popen("tmux capture-pane -p") then
     ioHandle = io.popen("tmux capture-pane  -t {} " .. pane .. " && tmux show-buffer && tmux delete-buffer")
@@ -27,7 +27,7 @@ function capturePane(pane)
   end
 end
 
-function getOtherPaneWords()
+local function getOtherPaneWords()
   local current_pane = os.getenv("TMUX_PANE")
   if current_pane == nil then return {} end
   local ioHandle = io.popen("tmux list-panes $LISTARGS -F '#{pane_active}#{window_active}-#{session_id} #{pane_id}'")
