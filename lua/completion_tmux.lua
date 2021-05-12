@@ -8,7 +8,7 @@ local cache = {}
 local function extractWords(txt)
   local words = {}
   for word in string.gmatch(txt, "[%w_]+") do
-    words[word] = "tmux completion"
+    table.insert(words, word)
   end
   return words
 end
@@ -30,29 +30,14 @@ end
 local function getOtherPaneWords()
   local current_pane = os.getenv("TMUX_PANE")
   if current_pane == nil then return {} end
-  local ioHandle = io.popen("tmux list-panes $LISTARGS -F '#{pane_active}#{window_active}-#{session_id} #{pane_id}'")
-  local list_panes_txt = ioHandle:read("*all")
-
-  local list_panes = {}
-  --[[
-  list_panes format is a structured text like:
-  11-$0 %7
-  01-$0 %3
-  we need to get the part of %num
-  ]]--
-  for pane in string.gmatch(list_panes_txt, "%%%d+") do
+  local ioHandle = io.popen("tmux list-panes -a -F '#{pane_id}'")
+  local words = {}
+  for pane in ioHandle:lines() do
     if current_pane ~= pane then
-      table.insert(list_panes, pane)
+      words = vim.list_extend(words, capturePane(pane))
     end
   end
-
-  local list_words = {}
-  for _, val in ipairs(list_panes) do
-    for k, v in pairs(capturePane(val)) do
-      list_words[k] = "tmux completion"
-    end
-  end
-  return list_words
+  return words
 end
 
 local function getCompletionItems(prefix)
@@ -61,7 +46,7 @@ local function getCompletionItems(prefix)
   if prefix == '' then
     return complete_items
   end
-  for word, paths in pairs(items) do
+  for _, word in ipairs(items) do
     if vim.startswith(word:lower(), prefix:lower()) then
       match.matching(complete_items, prefix, {
           word = word,
@@ -70,7 +55,7 @@ local function getCompletionItems(prefix)
           empty = 0,
           icase = 1,
           menu = '[T]',
-          user_data = vim.fn.json_encode({ hover = paths })
+          user_data = vim.fn.json_encode({ hover = "tmux completion" })
         })
     end
   end
