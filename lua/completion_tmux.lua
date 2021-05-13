@@ -5,26 +5,14 @@ local match = require "completion.matching"
 local M = {}
 local cache = {}
 
-local function extractWords(txt)
+local function capturePane(pane)
   local words = {}
-  for word in string.gmatch(txt, "[%w_]+") do
+  local ioHandle = io.popen("tmux capture-pane -p -t " .. pane)
+  for word in string.gmatch(ioHandle:read("*all"), "[%w_]+") do
     table.insert(words, word)
   end
+  ioHandle:close()
   return words
-end
-
-local function capturePane(pane)
-  local ioHandle = nil
-  if nil == io.popen("tmux capture-pane -p") then
-    ioHandle = io.popen("tmux capture-pane  -t {} " .. pane .. " && tmux show-buffer && tmux delete-buffer")
-  else
-    ioHandle = io.popen("tmux capture-pane -p -t " .. pane)
-  end
-  if ioHandle ~= nil then
-    return extractWords(ioHandle:read("*all"))
-  else
-    return {}
-  end
 end
 
 local function getOtherPaneWords()
@@ -37,6 +25,7 @@ local function getOtherPaneWords()
       words = vim.list_extend(words, capturePane(pane))
     end
   end
+  ioHandle:close()
   return words
 end
 
