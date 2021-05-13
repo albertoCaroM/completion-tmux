@@ -30,20 +30,17 @@ local function getOtherPaneWords()
 end
 
 local function getCompletionItems(prefix)
-  local items = getOtherPaneWords()
   local complete_items = {}
-  if prefix == '' then
-    return complete_items
-  end
+  local items = getOtherPaneWords()
+  local label = vim.g.completion_customize_lsp_label["tmux"] or "tmux"
   for _, word in ipairs(items) do
     if vim.startswith(word:lower(), prefix:lower()) then
       match.matching(complete_items, prefix, {
           word = word,
-          abbr = word,
           dup = 0,
           empty = 0,
           icase = 1,
-          menu = '[T]',
+          kind = label,
           user_data = vim.fn.json_encode({ hover = "tmux completion" })
         })
     end
