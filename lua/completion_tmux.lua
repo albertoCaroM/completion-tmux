@@ -1,9 +1,7 @@
-local luv = vim.loop
 local completion = require "completion"
 local match = require "completion.matching"
 
 local M = {}
-local cache = {}
 
 local function capturePane(pane)
   local words = {}
@@ -50,7 +48,6 @@ end
 
 function M.add_sources()
   completion.addCompletionSource('tmux', { item = getCompletionItems });
-  -- Cache on init
 end
 
 return M
